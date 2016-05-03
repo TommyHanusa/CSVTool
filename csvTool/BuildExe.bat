@@ -1,0 +1,3 @@
+pyinstaller CSVTool.spec
+
+pause
