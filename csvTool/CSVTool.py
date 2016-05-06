@@ -54,6 +54,7 @@ def processFile(filepath, exportpath, UniqueQueryIdentifier, JudgmentIdentifierK
                 for j in range(len(readCSV.fieldnames)):
                     temp.append(rowlist[i][readCSV.fieldnames[j]])#access dict element by key in order
                 dialog.append(repr(temp))
+                w.writerow( rowlist[i])
                 
             """   #dicts are hash tables
             if len(rowlist) > 0:
@@ -106,6 +107,7 @@ def processFile2(filepath, exportpath, UniqueQueryIdentifier, JudgmentIdentifier
                 for j in range(len(readCSV.fieldnames)):
                     temp.append(rowlist[i][readCSV.fieldnames[j]])#access dict element by key in order
                 dialog.append(repr(temp))
+                w.writerow( rowlist[i])
                 
             """ #dicts are hash tables
             if len(rowlist) > 0:
