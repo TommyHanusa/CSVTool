@@ -1,4 +1,9 @@
 import csv
+import math
+    
+    
+def GetJudgeID(line):
+    return line["JudgeID"]
     
     
 def processFile(filepath, exportpath, UniqueQueryIdentifier, JudgmentIdentifierKey, dialog):#'process file (3)' button
@@ -44,6 +49,7 @@ def processFile(filepath, exportpath, UniqueQueryIdentifier, JudgmentIdentifierK
                                     rowlist.append(line1)
                                     rowlist.append(line2)
                                     rowlist.append(line3)
+                                    matches +=1
 
                                    
             if len(rowlist) > 0:
@@ -66,6 +72,9 @@ def processFile(filepath, exportpath, UniqueQueryIdentifier, JudgmentIdentifierK
                w.writerow( rowlist[i])
                """
                
+
+               
+               
 def processFile2(filepath, exportpath, UniqueQueryIdentifier, JudgmentIdentifierKey, dialog):#'process file (2)' button
     #functionality is here    
     with open(filepath)as csvfile: #'C:\\Users\\TommyHanusa\\Desktop\\LADCG Data Feedback i.csv'
@@ -75,7 +84,13 @@ def processFile2(filepath, exportpath, UniqueQueryIdentifier, JudgmentIdentifier
         
         with open(exportpath, 'w') as f:  # 'C:\\Users\\TommyHanusa\\Desktop\\output.csv'
                 
+            matches = 0
+            disagreement = 0
             rowlist = []
+            judges = None
+            judgesHitCount = None
+            lines = 0 # for population
+            
             dialog.clear()#clear dialog box gui
             
             w = csv.DictWriter(f, readCSV.fieldnames ,lineterminator='\n')#readCSV.fieldnames 
@@ -87,17 +102,59 @@ def processFile2(filepath, exportpath, UniqueQueryIdentifier, JudgmentIdentifier
             
             
             for line in readCSV:
+            
+                lines+=1 # count every line
                 # shift lines by one
                 line2 = line1
                 line1 = line
                 
                 if line1 and line2:# only start once we have loaded up atleast 2 lines  
                     if line1[UniqueQueryIdentifier] == line2[UniqueQueryIdentifier]: # same identifier
+                        matches +=1
+                        
+                        if(not judgesHitCount):# intiialize judges
+                            judgesHitCount = {GetJudgeID(line1): 1}
+                            judgesHitCount.update({GetJudgeID(line2): 1})
+                        else:
+                            #update line 1 judge
+                            id = GetJudgeID(line1)
+                            if id in judgesHitCount:
+                                judgesHitCount.update({id: judgesHitCount[id]+1})
+                            else:
+                                 judgesHitCount.update({GetJudgeID(line1): 1})#add new judge
+                            # update line 2 judge
+                            id = GetJudgeID(line2)
+                            if id in judgesHitCount:
+                                judgesHitCount.update({id: judgesHitCount[id]+1})
+                            else:
+                                judgesHitCount.update({GetJudgeID(line2): 1})#add new judge
+                                
+                        #DISAGREEMENT!
                         if not (line1[JudgmentIdentifierKey] == line2[JudgmentIdentifierKey]): #different value
                                     #w.writerow(line1)
                                     #w.writerow(line2)
                                     rowlist.append(line1)
                                     rowlist.append(line2)
+                                    disagreement +=1
+                                    
+                                    if(not judges):# intiialize judges
+                                        judges = {GetJudgeID(line1): 1}
+                                        judges.update({GetJudgeID(line2): 1})
+                                    else:
+                                        #update line 1 judge
+                                        id = GetJudgeID(line1)
+                                        if id in judges:
+                                            judges.update({id: judges[id]+1})
+                                        else:
+                                            judges.update({GetJudgeID(line1): 1})#add new judge
+                                            
+                                        # update line 2 judge
+                                        id = GetJudgeID(line2)
+                                        if id in judges:
+                                            judges.update({id: judges[id]+1})
+                                        else:
+                                            judges.update({GetJudgeID(line2): 1})#add new judge
+                                    
                                     
             if len(rowlist) > 0:
                 dialog.append(repr(list(readCSV.fieldnames )))
@@ -109,6 +166,50 @@ def processFile2(filepath, exportpath, UniqueQueryIdentifier, JudgmentIdentifier
                 dialog.append(repr(temp))
                 w.writerow( rowlist[i])
                 
+            dialog.append("")# line break
+            #print judge disagreements
+            for judge in judges.keys():
+                dialog.append("judge # "+repr(judge)+" disagreements = "+repr(judges[judge]))
+                dialog.append("hits = "+repr(judgesHitCount[judge]))
+                
+            dialog.append("")# line break
+            dialog.append("Matches = "+repr(matches))
+            dialog.append("Disagreement = "+repr(disagreement))
+            dialog.append("ratio = "+repr(1.0-(disagreement/matches)) )
+            
+            sampleMean = (disagreement/matches)
+            print("lines = "+repr(lines))
+            print("STD=", math.sqrt(sampleMean*(abs(lines - sampleMean)**2)) )
+            print("STD2=", math.sqrt(sampleMean*(abs(1.0 - sampleMean)**2)) )
+            #conInt = Math.sqrt(zValC * (perc / 100) * (1 - perc / 100) / ss * pf) * 100 
+            zValC=3.8416
+            perc = 1.0-(disagreement/matches)
+            ss = matches
+            pop = lines
+            pf = (pop - ss) / (pop - 1)
+            
+            temp = math.sqrt(zValC * (perc / 100) * (1 - perc / 100) / ss * pf) * 100 
+            temp = (temp-pf)*100
+            temp = pf+temp/100
+            print ("std3 = "+repr(temp))
+            
+            """
+            #mathmagic
+            matches#sample size
+            disagreement#
+            
+            alpha = 1 - (95 / 100)# 95% confidence
+            p = 1 - alpha/2
+            
+
+            sampleMean = (disagreement/matches)
+            sampleVariancetemp = disagreement(0-sampleMean)^2 + 1.0-(disagreement/matches)) ^2
+            sampleDeviation = sqrt(sampleVariancetemp/(lines-1))
+            
+            critVal = 1.96# 95% confidence level
+            standardError = 0 # SD/sqrt(sampleSize)
+            """
+            ####
             """ #dicts are hash tables
             if len(rowlist) > 0:
                 dialog.append(repr(list(rowlist[0].keys() )))
@@ -116,8 +217,7 @@ def processFile2(filepath, exportpath, UniqueQueryIdentifier, JudgmentIdentifier
             for i in range(len(rowlist)):
                print(rowlist[i])
                dialog.append(repr(list(rowlist[i].values() )))
-               w.writerow( rowlist[i])                                    
-            """
+               w.writerow( rowlist[i]) """
                 
 #GUI
 import os # for file picker
